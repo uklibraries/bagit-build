@@ -1,0 +1,14 @@
+#!/bin/bash
+
+now=$(date +%s)
+log="log-$now.txt"
+:> "$log"
+
+for dir in *; do
+    if [[ -d "$dir" ]]; then
+        bagit-build "$dir" 2>&1 | tee -a "$log"
+    fi
+done
+
+echo
+echo "ok, logged stored in $log"
