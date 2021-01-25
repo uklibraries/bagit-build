@@ -107,6 +107,7 @@ open my $tsfh, '>', $tagmanifest_sha256
     or die "Can't write to $tagmanifest_sha256: $!\n";
 
 foreach my $bagfile (@bagfiles) {
+    next unless -f "$src/$bagfile";
     my $md5 = do {
         open my $mfh, '<:raw', "$src/$bagfile";
         my $sum = Digest::MD5->new;
