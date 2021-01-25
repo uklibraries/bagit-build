@@ -1,0 +1,14 @@
+#!/bin/bash
+
+now=$(date +%s)
+log="fixlog-$now.txt"
+:> "$log"
+
+for dir in *; do
+    if [[ -d "$dir" ]]; then
+        fix-baginfo "$dir" 2>&1 | tee -a "$log"
+    fi
+done
+
+echo
+echo "ok, logged stored in $log"
