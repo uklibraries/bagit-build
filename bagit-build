@@ -35,7 +35,7 @@ close($fh);
 
 # Create bag directory
 my $tgt = "$src.bag";
-print "ok, bagging $tgt from $src";
+print "ok, bagging $tgt from $src\n";
 mkdir $tgt;
 mkdir "$tgt/data";
 
