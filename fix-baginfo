@@ -1,0 +1,136 @@
+#!/usr/bin/env perl
+
+use strict;
+use DateTime;
+use Digest::MD5 qw(md5_hex);
+use Digest::SHA qw(sha256_hex);
+use File::Basename;
+use File::Copy;
+use File::Find;
+use File::Path qw(remove_tree);
+
+my (
+    $src,
+) = @ARGV;
+
+if (! -d $src) {
+    print "File $src does not exist or is not a directory, not updating bag\n";
+    exit;
+}
+
+if (! -f "$src/bagit.txt") {
+    print "Directory $src is missing bagit.txt, not updating bag\n";
+    exit;
+}
+
+# Mark intent
+my $intent = "$src.intent";
+if (-f $intent) {
+    print "[ERROR] Please report this: intent already exists for $src\n";
+    exit;
+}
+open my $fh, '>', $intent
+    or die "Can't write to $intent: $!\n";
+close($fh);
+
+# Set basic metadata
+my $lc_bag_id = basename($src);
+my $lc_project = $lc_bag_id;
+$lc_project =~ s/[^A-Za-z0-9].*//;
+my $lccn_permalink = 'https://lccn.loc.gov/2013655443';
+
+# Read current bag-info.txt
+my $baginfo = "$src/bag-info.txt";
+my %metadata = ();
+my %default_metadata = (
+    'LC-Bag-Id' => $lc_bag_id,
+    'LC-Project' => $lc_project,
+    'LCCN-Permalink' => $lccn_permalink,
+);
+
+if (! -f $baginfo) {
+    print "File bag-info.txt does not exist, creating\n";
+    foreach my $field (keys %default_metadata) {
+        $metadata{$field} = $default_metadata{$field};
+    }
+}
+else {
+    print "File bag-info.txt exists, reading current metadata\n";
+    open my $fh, '<', $baginfo
+        or die "Can't open $baginfo for input: $!\n";
+    while (<$fh>) {
+        chomp;
+        my ($field, @content) = split ':\ ', $_;
+        my $content = join(': ', @content);
+        $metadata{$field} = $content;
+    }
+    my $changed = 0;
+    foreach my $field (keys %default_metadata) {
+        unless (defined $metadata{$field}) {
+            print "* field $field missing, adding value " . $default_metadata{$field} . "\n";
+            $metadata{$field} = $default_metadata{$field};
+            $changed = 1;
+        }
+    }
+    unless ($changed) {
+        print "All required fields are present, not changing bag-info.txt\n";
+        # Cleanup
+        unlink $intent;
+        exit;
+    }
+}
+
+# If we reach this point we need to update bag-info.txt, and we have already defined the fields
+
+print "Writing bag-info.txt\n";
+open my $fh, '>', $baginfo
+    or die "Can't open $baginfo for writing: $!\n";
+foreach my $field (sort keys %metadata) {
+    print $fh "$field: $metadata{$field}\n";
+}
+close($fh);
+
+# Update tag manifests
+
+print "Updating tag manifests\n";
+my @bagfiles = (
+    'bag-info.txt',
+    'bagit.txt',
+    'manifest-md5.txt',
+    'manifest-sha256.txt',
+);
+my $tagmanifest_md5 = "$src/tagmanifest-md5.txt";
+my $tagmanifest_sha256 = "$src/tagmanifest-sha256.txt";
+open my $tmfh, '>', $tagmanifest_md5
+    or die "Can't write to $tagmanifest_md5: $!\n";
+open my $tsfh, '>', $tagmanifest_sha256
+    or die "Can't write to $tagmanifest_sha256: $!\n";
+
+foreach my $bagfile (@bagfiles) {
+    my $md5 = do {
+        open my $mfh, '<:raw', "$src/$bagfile";
+        my $sum = Digest::MD5->new;
+        local $/ = \65536;
+        while (<$mfh>) {
+            $sum->add($_);
+        }
+        $sum->hexdigest;
+    };
+
+    my $sha256 = do {
+        open my $mfh, '<:raw', "$src/$bagfile";
+        my $sum = Digest::SHA->new('sha256');
+        local $/ = \65536;
+        while (<$mfh>) {
+            $sum->add($_);
+        }
+        $sum->hexdigest;
+    };
+    print $tmfh "$md5  $bagfile\n";
+    print $tsfh "$sha256  $bagfile\n";
+}
+
+# Cleanup
+unlink $intent;
+
+##### END #####
