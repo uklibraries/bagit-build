@@ -18,8 +18,115 @@ if (! -d $src) {
     exit;
 }
 
+# dot_clean
+print "Running dot_clean on $src\n";
+system("/usr/sbin/dot_clean", $src);
+
 if (-f "$src/bagit.txt") {
     print "Directory $src already has bagit.txt, not building bag\n";
+
+    # check for manifested resource forks
+    my $mft_md5 = "$src/manifest-md5.txt";
+    my $mft_sha256 = "$src/manifest-sha256.txt";
+
+    my $tmp_mft_md5 = "$src/tmp.manifest-md5.txt";
+    my $tmp_mft_sha256 = "$src/tmp.manifest-sha256.txt";
+
+    my $changed_any = 0;
+    my $changed;
+
+    if (-f $mft_md5) {
+        $changed = 0;
+        open my $in_fh, '<', $mft_md5
+            or die "Can't read from $mft_md5: $!\n";
+        open my $out_fh, '>', $tmp_mft_md5
+            or die "Can't write to $tmp_mft_md5: $!\n";
+        while (<$in_fh>) {
+            if (m#/\._#) {
+                $changed = 1;
+            } else {
+                print $out_fh $_;
+            }
+        }
+        close($in_fh);
+        close($out_fh);
+
+        if ($changed) {
+            print "md5 checksum manifest changed\n";
+            $changed_any = 1;
+            rename $tmp_mft_md5, $mft_md5;
+        } else {
+            unlink $tmp_mft_md5;
+        }
+    }
+
+    if (-f $mft_sha256) {
+        $changed = 0;
+        open my $in_fh, '<', $mft_sha256
+            or die "Can't read from $mft_sha256: $!\n";
+        open my $out_fh, '>', $tmp_mft_sha256
+            or die "Can't write to $tmp_mft_sha256: $!\n";
+        while (<$in_fh>) {
+            if (m#/\._#) {
+                $changed = 1;
+            } else {
+                print $out_fh $_;
+            }
+        }
+        close($in_fh);
+        close($out_fh);
+
+        if ($changed) {
+            print "sha256 checksum manifest changed\n";
+            $changed_any = 1;
+            rename $tmp_mft_sha256, $mft_sha256;
+        } else {
+            unlink $tmp_mft_sha256;
+        }
+    }
+
+    if ($changed_any) {
+        # rebuild tag manifests
+        my @bagfiles = (
+            'bag-info.txt',
+            'bagit.txt',
+            'manifest-md5.txt',
+            'manifest-sha256.txt',
+        );
+        my $tagmanifest_md5 = "$src/tagmanifest-md5.txt";
+        my $tagmanifest_sha256 = "$src/tagmanifest-sha256.txt";
+        open my $tmfh, '>', $tagmanifest_md5
+            or die "Can't write to $tagmanifest_md5: $!\n";
+        open my $tsfh, '>', $tagmanifest_sha256
+            or die "Can't write to $tagmanifest_sha256: $!\n";
+
+        foreach my $bagfile (@bagfiles) {
+            next unless -f $bagfile;
+
+            my $md5 = do {
+                open my $mfh, '<:raw', "$src/$bagfile";
+                my $sum = Digest::MD5->new;
+                local $/ = \65536;
+                while (<$mfh>) {
+                    $sum->add($_);
+                }
+                $sum->hexdigest;
+            };
+
+            my $sha256 = do {
+                open my $mfh, '<:raw', "$src/$bagfile";
+                my $sum = Digest::SHA->new('sha256');
+                local $/ = \65536;
+                while (<$mfh>) {
+                    $sum->add($_);
+                }
+                $sum->hexdigest;
+            };
+            print $tmfh "$md5  $bagfile\n";
+            print $tsfh "$sha256  $bagfile\n";
+        }
+    }
+
     exit;
 }
 

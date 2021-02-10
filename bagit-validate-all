@@ -1,0 +1,14 @@
+#!/bin/bash
+
+now=$(date +%s)
+log="validitylog-$now.txt"
+:> "$log"
+
+for dir in *; do
+    if [[ -d "$dir" ]]; then
+        bagit-validate "$dir" 2>&1 | tee -a "$log"
+    fi
+done
+
+echo
+echo "ok, validity logs stored in $log"

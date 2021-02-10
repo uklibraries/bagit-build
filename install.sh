@@ -29,7 +29,7 @@ if [[ ! -d "$BINDIR" ]]; then
 fi
 
 echo "Installing programs"
-programs="bagit-build bagit-all fix-baginfo fix-baginfo-all"
+programs="bagit-build bagit-all fix-baginfo fix-baginfo-all bagit-validate bagit-validate-all"
 for program in $programs; do
     cp "$program" "$BINDIR"
     if [[ -e "$BINDIR/$program" ]]; then

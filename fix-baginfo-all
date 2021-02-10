@@ -11,4 +11,4 @@ for dir in *; do
 done
 
 echo
-echo "ok, logged stored in $log"
+echo "ok, fix logs stored in $log"

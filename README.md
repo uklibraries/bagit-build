@@ -12,6 +12,10 @@ Usage
 
 * bagit-build [directory] - Convert directory into a bag, functionally in place.  Dotfiles are removed.
 
+* bagit-validate [directory] - Verify the validity of a bag.
+
+* bagit-validate-all - Verify the validity of each top-level directory in the current directory.
+
 * fix-baginfo [directory] - Update bag-info.txt, if necessary, to ensure that required fields are present.
 
 * fix-baginfo-all - Run fix-baginfo on all top-level directories in the current directory.
