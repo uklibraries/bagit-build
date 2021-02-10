@@ -53,7 +53,7 @@ foreach $alg (@algs) {
                 if ($alg eq 'md5') {
                     $sum = Digest::MD5->new;
                 } elsif ($alg eq 'sha256') {
-                    $sum = Digest::SHA256->new;
+                    $sum = Digest::SHA->new('sha256');
                 }
                 local $/ = \65536;
                 while (<$mfh>) {
