@@ -212,7 +212,7 @@ my @bagfiles = (
     'manifest-sha256.txt',
 );
 if ($wants_baginfo) {
-    unshift @bagiles, 'bag-info.txt';
+    unshift @bagfiles, 'bag-info.txt';
 }
 
 my $tagmanifest_md5 = "$tgt/tagmanifest-md5.txt";
