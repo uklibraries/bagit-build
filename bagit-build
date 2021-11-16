@@ -152,10 +152,12 @@ print "ok, bagging $tgt from $src\n";
 mkdir $tgt;
 mkdir "$tgt/data";
 
+my $lc_bag_id;
+my $lc_project;
 if ($wants_baginfo) {
     # Set basic metadata
-    my $lc_bag_id = basename($src);
-    my $lc_project = $lc_bag_id;
+    $lc_bag_id = basename($src);
+    $lc_project = $lc_bag_id;
     $lc_project =~ s/[^A-Za-z0-9].*//;
 }
 
