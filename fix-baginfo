@@ -13,6 +13,14 @@ my (
     $src,
 ) = @ARGV;
 
+# Don't generate bag-info.txt by default.
+# Set $wants_baginfo to 1 to generate bag-info.txt.
+my $wants_baginfo = 0;
+if (!$wants_baginfo) {
+    print "bag-info.txt not requested, not updating bag\n";
+    exit;
+}
+
 if (! -d $src) {
     print "File $src does not exist or is not a directory, not updating bag\n";
     exit;

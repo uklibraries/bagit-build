@@ -9,6 +9,10 @@ use File::Copy;
 use File::Find;
 use File::Path qw(remove_tree);
 
+# Don't generate bag-info.txt by default.
+# Set $wants_baginfo to 1 to generate bag-info.txt.
+my $wants_baginfo = 0;
+
 my (
     $src,
 ) = @ARGV;
@@ -88,11 +92,13 @@ if (-f "$src/bagit.txt") {
     if ($changed_any) {
         # rebuild tag manifests
         my @bagfiles = (
-            'bag-info.txt',
             'bagit.txt',
             'manifest-md5.txt',
             'manifest-sha256.txt',
         );
+        if ($wants_baginfo) {
+            unshift @bagfiles, 'bag-info.txt';
+        }
         my $tagmanifest_md5 = "$src/tagmanifest-md5.txt";
         my $tagmanifest_sha256 = "$src/tagmanifest-sha256.txt";
         open my $tmfh, '>', $tagmanifest_md5
@@ -146,10 +152,12 @@ print "ok, bagging $tgt from $src\n";
 mkdir $tgt;
 mkdir "$tgt/data";
 
-# Set basic metadata
-my $lc_bag_id = basename($src);
-my $lc_project = $lc_bag_id;
-$lc_project =~ s/[^A-Za-z0-9].*//;
+if ($wants_baginfo) {
+    # Set basic metadata
+    my $lc_bag_id = basename($src);
+    my $lc_project = $lc_bag_id;
+    $lc_project =~ s/[^A-Za-z0-9].*//;
+}
 
 # Populate top-level files
 
@@ -165,17 +173,19 @@ close($fh);
 
 my $baginfo = "$tgt/bag-info.txt";
 my $now = DateTime->now()->iso8601() . 'Z';
-open my $fh, '>', $baginfo
-    or die "Can't write to $baginfo: $!\n";
+if ($wants_baginfo) {
+    open my $fh, '>', $baginfo
+        or die "Can't write to $baginfo: $!\n";
 
-print $fh <<"BAGINFOTXT";
+    print $fh <<"BAGINFOTXT";
 Bagging-Date: $now
 Bag-Software-Agent: build-bag.pl (Perl script)
 LC-Bag-Id: $lc_bag_id
 LC-Project: $lc_project
 LCCN-Permalink: https://lccn.loc.gov/2013655443
 BAGINFOTXT
-close($fh);
+    close($fh);
+}
 
 # Create manifests
 
@@ -195,11 +205,14 @@ close($msfh);
 # Create tagmanifests
 
 my @bagfiles = (
-    'bag-info.txt',
     'bagit.txt',
     'manifest-md5.txt',
     'manifest-sha256.txt',
 );
+if ($wants_baginfo) {
+    unshift @bagiles, 'bag-info.txt';
+}
+
 my $tagmanifest_md5 = "$tgt/tagmanifest-md5.txt";
 my $tagmanifest_sha256 = "$tgt/tagmanifest-sha256.txt";
 open my $tmfh, '>', $tagmanifest_md5
